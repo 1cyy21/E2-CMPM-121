@@ -3,10 +3,32 @@ export {};
 const canvas = document.querySelector<HTMLCanvasElement>("#rover-canvas")!;
 const ctx = canvas.getContext("2d")!;
 const readout = document.querySelector<HTMLParagraphElement>("#rover-readout")!;
+const pendingList = document.querySelector<HTMLOListElement>("#rover-pending")!;
+const queueStatus = document.querySelector<HTMLParagraphElement>(
+  "#rover-queue-status",
+)!;
+const runButton = document.querySelector<HTMLButtonElement>("#rover-run")!;
+const clearButton = document.querySelector<HTMLButtonElement>("#rover-clear")!;
 
 let x = 2;
 let y = 2;
 let directionIndex = 0;
+const pendingCommands: Command[] = [];
+
+function showPendingCommands() {
+  pendingList.replaceChildren(...pendingCommands.map((command) => {
+    const item = document.createElement("li");
+    item.textContent = command.label;
+    return item;
+  }));
+
+  const isEmpty = pendingCommands.length === 0;
+  queueStatus.textContent = isEmpty
+    ? "Empty"
+    : `${pendingCommands.length} pending`;
+  runButton.disabled = isEmpty;
+  clearButton.disabled = isEmpty;
+}
 
 function drawRover() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -72,21 +94,41 @@ const turnRight: Command = {
   },
 };
 
-function runCommand(command: Command) {
-  command.execute();
+function enqueueCommand(command: Command) {
+  pendingCommands.push(command);
+  showPendingCommands();
+}
+
+function runPendingCommands() {
+  while (pendingCommands.length > 0) {
+    const command = pendingCommands.shift()!;
+    command.execute();
+  }
+
   drawRover();
+  showPendingCommands();
+}
+
+function clearPendingCommands() {
+  pendingCommands.length = 0;
+  showPendingCommands();
 }
 
 document.querySelector<HTMLButtonElement>("#rover-forward")!.onclick = () => {
-  runCommand(moveForward);
+  enqueueCommand(moveForward);
 };
 document.querySelector<HTMLButtonElement>("#rover-right")!.onclick = () => {
-  runCommand(turnRight);
+  enqueueCommand(turnRight);
 };
 document.querySelector<HTMLButtonElement>("#rover-reset")!.onclick = () => {
   x = 2;
   y = 2;
   directionIndex = 0;
+  clearPendingCommands();
   drawRover();
 };
+
+runButton.onclick = runPendingCommands;
+clearButton.onclick = clearPendingCommands;
+clearPendingCommands();
 drawRover();
