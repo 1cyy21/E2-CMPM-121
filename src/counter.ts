@@ -12,6 +12,8 @@ const diagnostic = document.querySelector<HTMLParagraphElement>(
 let count = 0;
 let panel: HTMLParagraphElement | null = null;
 let panelUpdates = 0;
+let inspectorListener: (() => void) | null = null;
+
 const SHIELD_CAPACITY = 10;
 
 const shieldEvents = new EventTarget();
@@ -60,7 +62,6 @@ function setCount(next: number) {
   if (bounded === count) return;
   count = bounded;
   shieldEvents.dispatchEvent(new Event(SHIELD_CHANGED));
-  if (panel) updateStats(takeShieldSnapshot());
 }
 
 shieldEvents.addEventListener(SHIELD_CHANGED, () => {
@@ -81,9 +82,17 @@ document.querySelector<HTMLButtonElement>("#counter-open")!.onclick = () => {
   panel = document.createElement("p");
   host.append(panel);
   renderStats(takeShieldSnapshot());
+
+  inspectorListener = () => updateStats(takeShieldSnapshot());
+  shieldEvents.addEventListener(SHIELD_CHANGED, inspectorListener);
 };
 document.querySelector<HTMLButtonElement>("#counter-close")!.onclick = () => {
   if (!panel) return;
+  if (inspectorListener) {
+    shieldEvents.removeEventListener(SHIELD_CHANGED, inspectorListener);
+    inspectorListener = null;
+  }
+
   panel.remove();
   panel = null;
 };
