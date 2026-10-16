@@ -25,6 +25,25 @@ function calculateShift(assignedToSupplies: number): ShiftReport {
   return { assignedToSupplies, crewSize, production, consumption, balance };
 }
 
+type ReportRow = {
+  label: string;
+  color: string;
+  value: (report: ShiftReport) => number;
+};
+
+const REPORT_ROWS: ReportRow[] = [
+  {
+    label: "Production",
+    color: "#27766b",
+    value: (report) => report.production,
+  },
+  {
+    label: "Consumption",
+    color: "#a44d23",
+    value: (report) => report.consumption,
+  },
+];
+
 function drawShift(report: ShiftReport) {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   for (let i = 0; i < report.crewSize; i++) {
@@ -41,13 +60,22 @@ function drawShift(report: ShiftReport) {
     18,
     76,
   );
-  ctx.fillText(`Production: ${report.production}`, 18, 102);
-  ctx.fillStyle = "#27766b";
-  ctx.fillRect(18, 110, report.production * 14, 20);
-  ctx.fillStyle = "#233e43";
-  ctx.fillText(`Consumption: ${report.consumption}`, 18, 154);
-  ctx.fillStyle = "#a44d23";
-  ctx.fillRect(18, 162, report.consumption * 14, 20);
+
+  const ROW_TOP = 102;
+  const ROW_SPACING = 52;
+  const BAR_OFFSET = 8;
+  const BAR_SCALE = 14;
+  const BAR_HEIGHT = 20;
+
+  REPORT_ROWS.forEach((row, index) => {
+    const labelY = ROW_TOP + index * ROW_SPACING;
+    const amount = row.value(report);
+
+    ctx.fillStyle = "#233e43";
+    ctx.fillText(`${row.label}: ${amount}`, 18, labelY);
+    ctx.fillStyle = row.color;
+    ctx.fillRect(18, labelY + BAR_OFFSET, amount * BAR_SCALE, BAR_HEIGHT);
+  });
 }
 
 function writeShift(report: ShiftReport) {
